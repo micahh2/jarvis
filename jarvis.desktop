@@ -1,0 +1,9 @@
+[Desktop Entry]
+Encoding=UTF-8 
+Version=0.0.1 
+Name=Jarvis
+Type=Application 
+Comment=A simple math engine 
+Exec=jarvis 
+Icon=/home/micah/.jarvis/logo.png 
+Categories=Application;Math;School;Education;Search; 

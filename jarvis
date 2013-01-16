@@ -1,0 +1,3 @@
+#!/bin/bash
+cd /home/micah/.jarvis
+python3.2 /home/micah/.jarvis/jarvis.py
