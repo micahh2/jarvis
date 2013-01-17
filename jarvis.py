@@ -11,10 +11,10 @@ import io
 from tkinter import ttk
 from tkinter import *
 from tkinter.ttk import *
+from jmath import *
 
 words = {"quit": ["quit", "stop", "die", "done", "end"],
         "contrary" : ["don't", "not", "un"]}
-
 
 class App:
     applist = list()
@@ -85,7 +85,7 @@ class App:
         if reply[0]:
             outText = reply[1]
         else:
-            reply = self.calculus(q)
+            reply = calculus(q)
             if reply[0]:
                 outText = reply[1]
             else:
@@ -211,77 +211,6 @@ class App:
             success = False
         return [success, self.appImage]
 
-    def calculus(self, query):
-        success = True;
-        derive = ["derive", "derivative"]
-        integrate = ["integrate", "integral"]
-        calc = derive + integrate
-        operators = "-+"
-        operation = ""
-        opList = list()
-        returnString = "Error"
-
-        for i in calc:
-            if i in query:
-                success=True;
-                break;
-            else:
-                success=False;
-
-        if success==True:
-            for i in calc:
-                if i in query:
-                    operation = i
-                    query = query.replace(i, "")
-            query = query.replace(" " , "")
-            query = query.replace("of" , "")
-            listQuery = list(query)
-            for i in listQuery:
-                if i in operators:
-                    opList.append(i)
-                    listQuery[listQuery.index(i)] = "&"
-            indivQuerys = "".join(listQuery).split("&")
-            for i in range(len(indivQuerys)):
-                if operation in integrate:
-                    reply = self.integral(indivQuerys[i])
-                if operation in derive:
-                    reply = self.derivative(indivQuerys[i])
-                if reply[0]:
-                    indivQuerys[i] = reply[1]
-                else:
-                    success = False
-                    break
-                
-            returnString = ""
-            for i in indivQuerys:
-                returnString += i
-                if len(opList) > 0:
-                    returnString += " " + opList.pop() + " "
-        return [success, returnString]
-            
-    def integral(self, query):
-        success = True
-        integrals = {"1":"x", "1/x" : "ln(x)", "e^x":"e^x", "sin(x)":"-cos(x)", "cos(x)":"sin(x)",
-                     "sec^2(x)" : "tan(x)", "tan(x)" : "ln(sec^2(x))",
-                     "cot(x)": "ln(sin(x))", "sec(x)": "ln(sec(x)+tan(x))"}
-        returnString = "Err/integrate"
-        if query in integrals:
-            returnString = integrals[query]
-        else:
-            success = False
-        return [success, returnString]
-    def derivative(self, query):
-        success = True
-        derivatives = {"x":"1", "ln(x)" : "1/x", "e^x":"e^x", "sin(x)":"cos(x)", "cos(x)":"-sin(x)",
-                       "tan(x)" : "sec^2(x)", "cot(x)":"-csc^2(x)", 
-                       "sec(x)":"sec(x)tan(x)", "csc(x)" : "-csc(x)cot(x)"}
-        returnString = "Err/derive"
-        print(query)
-        if query in derivatives:
-            returnString = derivatives[query]
-        else:
-            success = False
-        return [success, returnString]
 
     def concalc(self, query):
         angleUnit = self.angleStatus.get()[0:3]
