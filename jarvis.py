@@ -8,6 +8,7 @@ import time
 import re
 import csv
 import io
+import csv
 from tkinter import ttk
 from tkinter import *
 from tkinter.ttk import *
@@ -38,6 +39,9 @@ class App:
         #self.icon = BitmapImage(file="logo.xbm")
         master.title("Jarvis")
         #master.iconmask(self.icon)
+
+        #import history
+        self.loadhistory();
 
         #self.goButton = Button()
         self.goButton = Button(frame,width=0)
@@ -78,6 +82,7 @@ class App:
         self.addhistory(q)
 
         if q == "":
+            self.writehistory()
             self.prompt.quit()
             return
 
@@ -281,7 +286,7 @@ class App:
             self.goButton = Button(self.Frame, text="Go to site", command=self.gotosite)
             self.goButton.pack(side=BOTTOM)
             self.goButton.bind("<Return>", self.gotosite)
-            self.goButton.focus_force()
+            #self.goButton.focus_force()
         if reply == "":
             success = False
         return [success, reply]
@@ -301,11 +306,16 @@ class App:
         return
 
     def up (self, event):
+        if self.place == 0 and self.entry.get() != "":
+            print("Save that!")
+            self.addhistory(self.entry.get())
         self.gethistory(num=1)
         return
+
     def down (self, event):
         self.gethistory(num=-1)
         return
+
     def copy(self, event):
         if self.prompt["image"] == "" and self.prompt["text"] != "I'm sorry, I don't know how to answer that.":
             query = "echo -n \"" + self.prompt["text"] + "\" | xsel -ib"
@@ -319,12 +329,20 @@ class App:
         self.entry.focus_force()
         return
     def loadhistory(self):
-        0/0
-        self.tree.parse("history.xml")
+        with open("history.csv", newline="") as csvfile:
+            hist = csv.reader(csvfile, delimiter=';', quotechar="\"");
+            for i in hist:
+                for j in i:
+                    self.addhistory(j);
+                    print("J: " + j);
         return
     def writehistory(self):
-        self.tree.write("history.xml")
-        0/0
+        with open("history.csv", 'w', newline="") as csvfile:
+            histwrite = csv.writer(csvfile, delimiter=';', quotechar='\"', quoting=csv.QUOTE_MINIMAL)
+            for i in reversed(self.history):
+                if i != "":
+                    print("Writing out: " + i)
+                    histwrite.writerow([i])
         return
 
 root = Tk()
