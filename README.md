@@ -3,7 +3,7 @@ jarvis
 
 Jarvis is just a simple calculator app writen in python
 
-It isn't recomended that you use the installer. This is a fairly simple python program that make use of a few dependancies.
+It isn't recomended that you use the installer. This is a fairly simple python program.
 
 Dependencies needed: python3.2, xsel, python3-tk, gnuplot, concalc
 
