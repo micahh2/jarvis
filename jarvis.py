@@ -94,16 +94,15 @@ class App:
         evalTsk = Thread()
         while parentThread.is_alive():
             change = False
-            if self.que[0]:
-                with threading.RLock() as lock:
+            with threading.RLock() as lock:
+                if self.que[0]:
                     self.prompt["image"] = "" 
                     self.prompt["text"] = ""
-                change = True
-                if not evalTsk.is_alive():
-                        evalTsk = Thread(target=self.evaluate, args=(self.que[1],self.que[2],))
-                        with threading.RLock() as lock:
+                    change = True
+                    if not evalTsk.is_alive():
+                            evalTsk = Thread(target=self.evaluate, args=(self.que[1],self.que[2],))
                             self.que = [False, None, None]
-                        evalTsk.start()
+                            evalTsk.start()
 
             for i in ["concalc", "calculus", "duckduckgo", "gnuplot"]:
                 j = self.outText[i]
@@ -269,14 +268,10 @@ class App:
         try:
             print(subprocess.check_output(formq, shell=True, universal_newlines=True))
             reply = PhotoImage(file="out.gif")
-            lock = threading.RLock()
-            with lock:
-                self.appImage = reply
+            self.appImage = reply
         except:
             success = False
-        lock = threading.RLock()
-        with lock:
-            self.outText["gnuplot"] = [success, self.appImage]
+        self.outText["gnuplot"] = [success, self.appImage]
 
 
     def concalc(self, query):
@@ -322,16 +317,14 @@ class App:
         except:
             success= False
             reply = "Error in using concalc"
-        lock = threading.RLock()
-        with lock:
-            self.outText["concalc"] = [success, reply]
+        self.outText["concalc"] = [success, reply]
         return
 
     def duckduckgo(self, query):
         success = True
         query = query.replace("def:", "")
         try:
-            page = urllib.request.urlopen("http://176.34.135.166/?q=%22" + query.replace(" ", "%20") + "%22&format=json&no_redirect=1", timeout=2)
+            page = urllib.request.urlopen("http://176.34.135.166/?q=%22" + query.replace(" ", "%20") + "%22&format=json&no_redirect=1", timeout=1.5)
             jdata = json.loads(page.read().decode('utf-8'))
         except:
             reply = "Failed to connect"
@@ -359,9 +352,7 @@ class App:
             #self.goButton.focus_force()
         if reply == "":
             success = False
-        lock = threading.RLock()
-        with lock:
-            self.outText["duckduckgo"] = [success, reply]
+        self.outText["duckduckgo"] = [success, reply]
 
     def calculus(self, query):
         success = True;
@@ -409,9 +400,7 @@ class App:
                 returnString += i
                 if len(opList) > 0:
                     returnString += " " + opList.pop() + " "
-        lock = threading.RLock()
-        with lock:
-            self.outText["calculus"] = [success, returnString]
+        self.outText["calculus"] = [success, returnString]
 
 
     def gethistory(self, num=1):
@@ -468,8 +457,7 @@ class App:
     
     def quitProgram(self):
         self.writehistory()
-        lock = threading.RLock()
-        with lock:
+        with threading.RLock() as lock:
             for i in threading.enumerate():
                 if i != threading.current_thread():
                     i.join(timeout=.5)
