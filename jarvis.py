@@ -1,5 +1,7 @@
-#!/usr/bin/python3.2
+#!/usr/bin/python3
 import subprocess
+import threading
+from threading import Thread
 import math
 import tkinter
 import urllib.request
@@ -21,7 +23,15 @@ class App:
     applist = list()
     place = 0
     history = [""]
-    firstRun = True;
+    firstRun = True
+    outText = {"calculus" : [False, None], "gnuplot" : [False, None], "duckduckgo" : [False, None], "concalc" : [False, None]}
+
+    que = [False, None, None]
+    
+    concalcTsk = Thread()
+    calculusTsk = Thread()
+    gnuplotTsk = Thread()
+    duckduckgoTsk = Thread()
 
     def updateProgramList(self):
         applist = subprocess.Popen(["ls", "/usr/share/applications"]).split(" ")
@@ -30,7 +40,6 @@ class App:
     def __init__(self, master):
         frame = Frame(master)
         frame.pack()
-        print(str(type(frame)))
 
         self.defaultfont=('Helvetica', 36, '')	
         self.descFont=('Helvetica', 12, '')	
@@ -61,54 +70,111 @@ class App:
         self.entry.bind('<Down>', self.down)
         self.entry.bind("<Button-4>", self.up)
         self.entry.bind("<Button-5>", self.down)
-        self.entry.bind("<Return>", self.evaluate)
+        self.entry.bind("<KeyRelease>", self.addNext)
         self.entry.pack(side=TOP)
 
         self.appImage = PhotoImage()
 
         self.prompt = Label(frame, text="", font=('Helvetica', 0, ''))
-        self.prompt.bind("<Button-2>", self.copy)
-        self.prompt.bind("<Button-1>", self.copy)
+        #self.prompt.bind("<Button-2>", self.copy)
+        #self.prompt.bind("<Button-1>", self.copy)
+        master.bind_all("<Control-KeyPress-C>", self.copy)
         self.prompt.pack(side=TOP)
+        pollTsk = Thread(target=self.pollData, args=(threading.current_thread(),))
+        pollTsk.start()
 
-    def evaluate(self, event):
-        self.prompt["text"] = ""
-        self.prompt["image"] = ""
-        self.prompt["font"] = self.defaultfont
+    def addNext(self, event):
         q = self.entry.get()
-        self.entry.delete(0, END)
-        self.goButton.destroy()
+        self.que = [True, q, event]
+        outText = {"calculus" : [False, None], "gnuplot" : [False, None], "duckduckgo" : [False, None], "concalc" : [False, None]}
 
-        self.addhistory(q)
+    def pollData(self, parentThread):
+        evalTsk = Thread()
+        while parentThread.is_alive():
+            change = False
+            if self.que[0]:
+                outText = {"calculus" : [False, None], "gnuplot" : [False, None], "duckduckgo" : [False, None], "concalc" : [False, None]}
+                self.prompt["image"] = "" 
+                self.prompt["text"] = ""
+                change = True
+                if not evalTsk.is_alive():
+                        evalTsk = Thread(target=self.evaluate, args=(self.que[1],self.que[2],))
+                        self.que = [False, None, None]
+                        evalTsk.start()
 
-        if q == "":
-            self.writehistory()
-            self.prompt.quit()
-            return
-
-        reply = self.concalc(q)
-        if reply[0]:
-            outText = reply[1]
-        else:
-            reply = calculus(q)
-            if reply[0]:
-                outText = reply[1]
-            else:
-                reply = self.gnuplot(q)
-                if reply[0]:
-                    self.prompt["image"] = self.appImage
-                    outText = "Done"
-                else:
-                    reply = self.duckduckgo(q)
-                    self.prompt["font"] = self.descFont
-                    if reply[0]:
-                        outText = reply[1]
+            for i in ["concalc", "calculus", "duckduckgo", "gnuplot"]:
+                j = self.outText[i]
+                if j[0] and not self.que[0]:
+                    if i == "gnuplot":
+                        self.prompt["image"] = self.appImage
                     else:
-                        outText = "I'm sorry, I don't know how to answer that."
+                        self.prompt["text"] = j[1];
+                        if i == "duckduckgo":
+                            self.prompt["font"] = self.descFont
+                        else:
+                            self.prompt["font"] = self.defaultfont
+                    change = True
+                    break;
 
-        self.prompt["text"] = outText
+            if change:
+                self.prompt.pack()
 
-        self.prompt.pack()
+    def evaluate(self, qry, event):
+        q = qry
+        self.goButton.destroy()
+        returnKey = False
+        self.prompt["image"] = ""
+
+        if event.keycode == 36:
+            self.prompt["text"] = ""
+            self.entry.delete(0, END)
+            self.addhistory(q)
+            returnKey == True
+            if q == "":
+                self.quitProgram()
+                return
+            print("#")
+            print("# of threads: " + str(len(threading.enumerate())))
+            print("#")
+            for i in threading.enumerate():
+                if i != threading.current_thread():
+                    i.join(timeout=4)
+
+
+        timeToWait = .2
+        if returnKey:
+            timeToWait = 1
+
+        if self.concalcTsk.is_alive():
+            self.concalcTsk.join(timeout=timeToWait)
+        if not self.concalcTsk.is_alive():
+            #self.outText["concalc"] = [False, None]
+            self.concalcTsk = Thread(target=self.concalc, args=(q,))
+            self.concalcTsk.start()
+            
+        if self.calculusTsk.is_alive():
+            self.calculusTsk.join(timeout=timeToWait)
+        if not self.calculusTsk.is_alive():
+            #self.outText["calculus"] = [False, None] 
+            self.calculusTsk = Thread(target=self.calculus, args=(q,))
+            self.calculusTsk.start()
+            
+        if self.gnuplotTsk.is_alive():
+            self.gnuplotTsk.join(timeout=timeToWait)
+        if not self.gnuplotTsk.is_alive():
+            #self.outText["gnuplot"] = [False, None]
+            self.gnuplotTsk = Thread(target=self.gnuplot, args=(q,))
+            self.gnuplotTsk.start()
+
+        if self.duckduckgoTsk.is_alive():
+            self.duckduckgoTsk.join(timeToWait)
+        if not self.duckduckgoTsk.is_alive():
+            #self.outText["duckduckgo"] = [False, None]
+            self.duckduckgoTsk = Thread(target=self.duckduckgo, args=(q,))
+            self.duckduckgoTsk.start()
+
+        change = False
+        
 
     def gnuplot(self, query):
         #TODO sanitize input
@@ -193,7 +259,6 @@ class App:
       #Try make the query in right terms
         print("The query (" + formq + ")  needs to be in terms of: " + str(terms));
         for i in termList:
-            print(formq)
             if i not in terms and i in formq:
                 if likeTerms[i] in terms:
                     query = query.replace(i, likeTerms[i])
@@ -214,7 +279,8 @@ class App:
             self.appImage = reply
         except:
             success = False
-        return [success, self.appImage]
+            
+        self.outText["gnuplot"] = [success, self.appImage]
 
 
     def concalc(self, query):
@@ -236,7 +302,6 @@ class App:
             query=query.replace("e", str(math.e))
             query=query.replace("INTGRL", "integ")
 
-            print(angleUnit)
             #reply = subprocess.check_output("concalc -a " + angleUnit + "\'" + query + "\'", shell=True, universal_newlines=True)
             reply = subprocess.check_output("concalc -a " + angleUnit + " '" + query + "'", shell=True, universal_newlines=True)
             if reply in ["nan\n", "Nan\n", "nannani\n", "none\n"]:
@@ -244,24 +309,31 @@ class App:
             else:
                 try:
                     rounded = float(reply.replace("\n", ""))
+                    places = str(rounded).index(".");
                     decimals = len(str(rounded))-str(rounded).index(".")
                     if decimals > 14:
                         rounded = round(rounded, len(str(rounded).replace(".",""))-3)
                         reply = str(rounded)
+                        decimals = len(str(rounded))-str(rounded).index(".")
+                    if decimals > 4 and "e" not in reply:
+                        reply = str(float(rounded)*float(10**(decimals-1))) + "e-" + str(decimals-1)
+                    if places > 4 and "e" not in reply:
+                        reply = str(float(rounded)/float(10**(places-1))) + "e" + str(places-1)
+
                 except:
                     print("Error")
                     print(list(reply.replace("\n", "")))
         except:
             success= False
             reply = "Error in using concalc"
-        return [success, reply]
+        self.outText["concalc"] = [success, reply]
+        return
 
     def duckduckgo(self, query):
         success = True
         query = query.replace("def:", "")
-        print(query)
         try:
-            page = urllib.request.urlopen("http://176.34.135.166/?q=%22" + query.replace(" ", "%20") + "%22&format=json&no_redirect=1", timeout=1)
+            page = urllib.request.urlopen("http://176.34.135.166/?q=%22" + query.replace(" ", "%20") + "%22&format=json&no_redirect=1", timeout=2)
             jdata = json.loads(page.read().decode('utf-8'))
         except:
             reply = "Failed to connect"
@@ -281,7 +353,7 @@ class App:
             urldata = json.loads(urlpage.read().decode('utf-8'))
             self.Site = urldata["Redirect"]
         except:
-            print("Fudge nuggets!")
+            print("Page didn't load")
         else:
             self.goButton = Button(self.Frame, text="Go to site", command=self.gotosite)
             self.goButton.pack(side=BOTTOM)
@@ -289,7 +361,55 @@ class App:
             #self.goButton.focus_force()
         if reply == "":
             success = False
-        return [success, reply]
+        self.outText["duckduckgo"] = [success, reply]
+
+    def calculus(self, query):
+        success = True;
+        derive = ["derive", "derivative"]
+        integrate = ["integrate", "integral"]
+        calc = derive + integrate
+        operators = "-+"
+        operation = ""
+        opList = list()
+        returnString = "Error"
+
+        for i in calc:
+            if i in query:
+                success=True;
+                break;
+            else:
+                success=False;
+
+        if success==True:
+            for i in calc:
+                if i in query:
+                    operation = i
+                    query = query.replace(i, "")
+            query = query.replace(" " , "")
+            query = query.replace("of" , "")
+            listQuery = list(query)
+            for i in listQuery:
+                if i in operators:
+                    opList.append(i)
+                    listQuery[listQuery.index(i)] = "&"
+            indivQuerys = "".join(listQuery).split("&")
+            for i in range(len(indivQuerys)):
+                if operation in integrate:
+                    reply = integral(indivQuerys[i])
+                if operation in derive:
+                    reply = derivative(indivQuerys[i])
+                if reply[0]:
+                    indivQuerys[i] = reply[1]
+                else:
+                    success = False
+                    break
+                
+            returnString = ""
+            for i in indivQuerys:
+                returnString += i
+                if len(opList) > 0:
+                    returnString += " " + opList.pop() + " "
+        self.outText["calculus"] = [success, returnString]
 
 
     def gethistory(self, num=1):
@@ -307,7 +427,6 @@ class App:
 
     def up (self, event):
         if self.place == 0 and self.entry.get() != "":
-            print("Save that!")
             self.addhistory(self.entry.get())
         self.gethistory(num=1)
         return
@@ -317,7 +436,9 @@ class App:
         return
 
     def copy(self, event):
-        if self.prompt["image"] == "" and self.prompt["text"] != "I'm sorry, I don't know how to answer that.":
+        for i in range(10):
+            print(copy)
+        if self.prompt["image"] == "":
             query = "echo -n \"" + self.prompt["text"] + "\" | xsel -ib"
             if self.firstRun:
                 subprocess.check_output("xsel -k", shell=True, universal_newlines=True)
@@ -334,16 +455,21 @@ class App:
             for i in hist:
                 for j in i:
                     self.addhistory(j);
-                    print("J: " + j);
         return
     def writehistory(self):
         with open("history.csv", 'w', newline="") as csvfile:
             histwrite = csv.writer(csvfile, delimiter=';', quotechar='\"', quoting=csv.QUOTE_MINIMAL)
             for i in reversed(self.history):
                 if i != "":
-                    print("Writing out: " + i)
                     histwrite.writerow([i])
         return
+    
+    def quitProgram(self):
+        self.writehistory()
+        self.prompt.quit()
+        for i in threading.enumerate():
+            if i != threading.current_thread():
+                i.join(timeout=1)
 
 root = Tk()
 app = App(root)

@@ -23,10 +23,10 @@ if [[ $DISTRO != *ubuntu* ]] && [[ $DISTRO != *mint* ]] && [[ $DISTRO != *debian
     echo "Unable to detemine usable GNU/Linux version."
     echo "Going ahead with the install, but you will need"
     echo "to install dependencies manually (unless already installed):"
-    echo -e "\t\t concalc \n\t\t gnuplot \n\t\t python3.2 \n\t\t python3-tk \n\t\t xsel"
+    echo -e "\t\t concalc \n\t\t gnuplot \n\t\t python3 \n\t\t python3-tk \n\t\t xsel"
 
 else
-    gksudo "apt-get install -y concalc gnuplot python3.2 python3-tk xsel"
+    sudo apt-get install -y concalc gnuplot python3 python3-tk xsel
 fi
 
     sudo mkdir $HOME/.jarvis
@@ -35,7 +35,7 @@ fi
     #Setup run thingy
         #Should probably change this so it can be used 
         #on multiperson/account systems
-    echo -e -n "#!/bin/bash\ncd $HOME/.jarvis\npython3.2 $HOME/.jarvis/jarvis.py" > jarvis
+    echo -e -n "#!/bin/bash\ncd $HOME/.jarvis\npython3 $HOME/.jarvis/jarvis.py" > jarvis
     
     echo -e -n "[Desktop Entry]
 Encoding=UTF-8 
