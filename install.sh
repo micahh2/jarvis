@@ -29,8 +29,8 @@ else
     sudo apt-get install -y concalc gnuplot python3 python3-tk xsel
 fi
 
-    sudo mkdir $HOME/.jarvis
-    sudo cp * $HOME/.jarvis
+    mkdir $HOME/.jarvis
+    cp * $HOME/.jarvis
 
     #Setup run thingy
         #Should probably change this so it can be used 
@@ -47,7 +47,7 @@ Exec=jarvis
 Icon=$HOME/.jarvis/logo.png 
 Categories=Application;Math;School;Education;Search; " > jarvis.desktop
 
-    sudo chmod a+x jarvis
+    chmod a+x jarvis
     
     sudo cp jarvis /usr/bin/
     sudo cp jarvis.desktop /usr/share/applications/
