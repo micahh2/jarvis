@@ -3,6 +3,7 @@ import subprocess
 import threading
 from threading import Thread
 import math
+import time
 import tkinter
 import urllib.request
 import json
@@ -84,22 +85,24 @@ class App:
         pollTsk.start()
 
     def addNext(self, event):
-        q = self.entry.get()
-        self.que = [True, q, event]
-        outText = {"calculus" : [False, None], "gnuplot" : [False, None], "duckduckgo" : [False, None], "concalc" : [False, None]}
+        with threading.RLock() as lock:
+            q = self.entry.get()
+            self.que = [True, q, event]
+            outText = {"calculus" : [False, None], "gnuplot" : [False, None], "duckduckgo" : [False, None], "concalc" : [False, None]}
 
     def pollData(self, parentThread):
         evalTsk = Thread()
         while parentThread.is_alive():
             change = False
             if self.que[0]:
-                outText = {"calculus" : [False, None], "gnuplot" : [False, None], "duckduckgo" : [False, None], "concalc" : [False, None]}
-                self.prompt["image"] = "" 
-                self.prompt["text"] = ""
+                with threading.RLock() as lock:
+                    self.prompt["image"] = "" 
+                    self.prompt["text"] = ""
                 change = True
                 if not evalTsk.is_alive():
                         evalTsk = Thread(target=self.evaluate, args=(self.que[1],self.que[2],))
-                        self.que = [False, None, None]
+                        with threading.RLock() as lock:
+                            self.que = [False, None, None]
                         evalTsk.start()
 
             for i in ["concalc", "calculus", "duckduckgo", "gnuplot"]:
@@ -115,9 +118,10 @@ class App:
                             self.prompt["font"] = self.defaultfont
                     change = True
                     break;
-
-            if change:
-                self.prompt.pack()
+                elif self.prompt["text"] == "":
+                    self.prompt["text"] = "Loading..."
+            time.sleep(.1)
+            self.prompt.pack()
 
     def evaluate(self, qry, event):
         q = qry
@@ -141,33 +145,22 @@ class App:
                     i.join(timeout=4)
 
 
-        timeToWait = .2
-        if returnKey:
-            timeToWait = 1
 
-        if self.concalcTsk.is_alive():
-            self.concalcTsk.join(timeout=timeToWait)
         if not self.concalcTsk.is_alive():
             #self.outText["concalc"] = [False, None]
             self.concalcTsk = Thread(target=self.concalc, args=(q,))
             self.concalcTsk.start()
             
-        if self.calculusTsk.is_alive():
-            self.calculusTsk.join(timeout=timeToWait)
         if not self.calculusTsk.is_alive():
             #self.outText["calculus"] = [False, None] 
             self.calculusTsk = Thread(target=self.calculus, args=(q,))
             self.calculusTsk.start()
             
-        if self.gnuplotTsk.is_alive():
-            self.gnuplotTsk.join(timeout=timeToWait)
         if not self.gnuplotTsk.is_alive():
             #self.outText["gnuplot"] = [False, None]
             self.gnuplotTsk = Thread(target=self.gnuplot, args=(q,))
             self.gnuplotTsk.start()
 
-        if self.duckduckgoTsk.is_alive():
-            self.duckduckgoTsk.join(timeToWait)
         if not self.duckduckgoTsk.is_alive():
             #self.outText["duckduckgo"] = [False, None]
             self.duckduckgoTsk = Thread(target=self.duckduckgo, args=(q,))
@@ -276,11 +269,14 @@ class App:
         try:
             print(subprocess.check_output(formq, shell=True, universal_newlines=True))
             reply = PhotoImage(file="out.gif")
-            self.appImage = reply
+            lock = threading.RLock()
+            with lock:
+                self.appImage = reply
         except:
             success = False
-            
-        self.outText["gnuplot"] = [success, self.appImage]
+        lock = threading.RLock()
+        with lock:
+            self.outText["gnuplot"] = [success, self.appImage]
 
 
     def concalc(self, query):
@@ -326,7 +322,9 @@ class App:
         except:
             success= False
             reply = "Error in using concalc"
-        self.outText["concalc"] = [success, reply]
+        lock = threading.RLock()
+        with lock:
+            self.outText["concalc"] = [success, reply]
         return
 
     def duckduckgo(self, query):
@@ -361,7 +359,9 @@ class App:
             #self.goButton.focus_force()
         if reply == "":
             success = False
-        self.outText["duckduckgo"] = [success, reply]
+        lock = threading.RLock()
+        with lock:
+            self.outText["duckduckgo"] = [success, reply]
 
     def calculus(self, query):
         success = True;
@@ -409,7 +409,9 @@ class App:
                 returnString += i
                 if len(opList) > 0:
                     returnString += " " + opList.pop() + " "
-        self.outText["calculus"] = [success, returnString]
+        lock = threading.RLock()
+        with lock:
+            self.outText["calculus"] = [success, returnString]
 
 
     def gethistory(self, num=1):
@@ -466,10 +468,12 @@ class App:
     
     def quitProgram(self):
         self.writehistory()
+        lock = threading.RLock()
+        with lock:
+            for i in threading.enumerate():
+                if i != threading.current_thread():
+                    i.join(timeout=.5)
         self.prompt.quit()
-        for i in threading.enumerate():
-            if i != threading.current_thread():
-                i.join(timeout=1)
 
 root = Tk()
 app = App(root)
