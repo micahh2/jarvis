@@ -169,9 +169,8 @@ class App:
         
 
     def gnuplot(self, query):
-        #TODO sanitize input
-
-      #setup variables
+     #TODO sanitize input
+        #setup variables
         success = True
         query = query.lower();
         plot = "plot"
